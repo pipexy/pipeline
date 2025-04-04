@@ -1,0 +1,43 @@
+# pipeline.yaml
+pipelines:
+  process-data:
+    description: "Process data from API and save to database"
+    steps:
+      - adapter: http
+        methods:
+          - name: url
+            value: "https://api.example.com/data"
+          - name: method
+            value: "GET"
+          - name: headers
+            value:
+              Authorization: "Bearer TOKEN"
+
+      - adapter: python
+        methods:
+          - name: code
+            value: |
+              # Przetwarzanie danych
+              processed = []
+              for item in input_data:
+                  if item['active']:
+                      processed.append({
+                          'id': item['id'],
+                          'name': item['name'].upper(),
+                          'value': item['value'] * 2
+                      })
+              result = processed
+
+      - adapter: php
+        methods:
+          - name: code
+            value: |
+              // Zapisanie danych do bazy
+              $db = new PDO('mysql:host=localhost;dbname=mydb', 'user', 'password');
+              
+              foreach ($input as $item) {
+                  $stmt = $db->prepare('INSERT INTO items (id, name, value) VALUES (?, ?, ?)');
+                  $stmt->execute([$item['id'], $item['name'], $item['value']]);
+              }
+              
+              echo json_encode(['status' => 'success', 'count' => count($input)]);
