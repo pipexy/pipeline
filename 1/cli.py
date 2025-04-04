@@ -4,7 +4,7 @@ import json
 import sys
 from pipeline_engine import PipelineEngine
 from dsl_parser import YamlDSLParser
-
+from adapters_extended import *
 
 def main():
     parser = argparse.ArgumentParser(description='Execute DSL pipelines')

@@ -28,38 +28,41 @@ class DotNotationParser:
     @staticmethod
     def parse(expression):
         """Parsuje wyrażenie w notacji kropkowej."""
-        # Regex dla wyrażenia: adapter.method(arg).method2(arg2)
-        adapter_pattern = r'([a-zA-Z0-9_-]+)(?:\.(.*?))?'
-        adapter_match = re.match(adapter_pattern, expression)
+        # Regex dla wyrażenia: adapter.method(arg)
+        parts = expression.split('.', 1)  # Split only on the first dot
 
-        if not adapter_match:
+        if not parts or len(parts) == 0:
             raise ValueError(f"Invalid syntax: {expression}")
 
-        adapter_name = adapter_match.group(1)
+        adapter_name = parts[0]
 
         # Jeśli nie ma metod, zwróć sam adapter
-        if not adapter_match.group(2):
+        if len(parts) == 1:
             return {
                 'adapter': adapter_name,
                 'methods': []
             }
 
-        # Regex dla metod: method1('arg1').method2(arg2)
+        # Get method part
+        method_part = parts[1]
+
+        # Regex dla metod: method1('arg1')
         method_pattern = r'([a-zA-Z0-9_-]+)\s*\(([^)]*)\)'
-        method_matches = re.finditer(method_pattern, adapter_match.group(2))
+        match = re.match(method_pattern, method_part)
 
-        methods = []
-        for match in method_matches:
-            method_name = match.group(1)
-            arg_str = match.group(2).strip()
+        if not match:
+            raise ValueError(f"Invalid method syntax in: {method_part}")
 
-            # Parsuj argumenty
-            arg_value = DotNotationParser._parse_arguments(arg_str)
+        method_name = match.group(1)
+        arg_str = match.group(2).strip()
 
-            methods.append({
-                'name': method_name,
-                'value': arg_value
-            })
+        # Parsuj argumenty
+        arg_value = DotNotationParser._parse_arguments(arg_str)
+
+        methods = [{
+            'name': method_name,
+            'value': arg_value
+        }]
 
         return {
             'adapter': adapter_name,

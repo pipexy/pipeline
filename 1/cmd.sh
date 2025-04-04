@@ -7,4 +7,4 @@ python cli.py --pipeline "bash.command('ls -la').python.code('result = [line for
 python cli.py --pipeline "python.code('result = [x*2 for x in input_data]')" --input "[1, 2, 3, 4]"
 
 # Pobranie danych z API i zapisanie do pliku
-python cli.py --pipeline "http.url('https://api.example.com/data').method('GET')" --output data.json
+python cli.py --pipeline "http_client.url('https://api.example.com/data').method('GET')" --output data.json

@@ -1,11 +1,10 @@
-# Silnik wykonujący sekwencje adapterów
+# pipeline_engine.py
 """
-pipeline_engine.py
+Silnik wykonujący sekwencje adapterów
 """
 
-# pipeline_engine.py
-from adapters import ADAPTERS
 from dsl_parser import DotNotationParser, YamlDSLParser
+from adapters_extended import ADAPTERS
 
 
 class PipelineEngine:
