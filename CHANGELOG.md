@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.6] - 2025-04-05
+
+### Added
+- Changes in 1/adapters/BaseAdapter.py
+- Changes in 1/adapters/BashAdapter.py
+- Changes in 1/adapters/HttpClientAdapter.py
+- Changes in 1/adapters/HttpServerAdapter.py
+- Changes in 1/adapters/NodeAdapter.py
+- Changes in 1/adapters/PHPAdapter.py
+- Changes in 1/adapters/PythonAdapter.py
+- Changes in 1/adapters/__init__.py
+
 ## [0.1.5] - 2025-04-05
 
 ### Added

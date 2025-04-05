@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from adapters import bash, HttpClientAdapter, python
+from adapters import *
 from pipeline_engine import PipelineEngine
 
 print("Running code.py")

@@ -1,7 +1,36 @@
 #!/usr/bin/env python3
 # example_cli.py
 
-from adapters import bash, http_client, python
+# Import adapter classes
+from adapters.BashAdapter import BashAdapter
+from adapters.PHPAdapter import PHPAdapter
+from adapters.NodeAdapter import NodeAdapter
+from adapters.HttpClientAdapter import HttpClientAdapter
+from adapters.HttpServerAdapter import HttpServerAdapter
+from adapters.PythonAdapter import PythonAdapter
+import adapters
+
+bash = BashAdapter('bash')
+php = PHPAdapter('php')
+node = NodeAdapter('node')
+http_client = HttpClientAdapter('http_client')
+http_server = HttpServerAdapter('http_server')
+python = PythonAdapter('python')
+
+# Słownik dostępnych adapterów
+ADAPTERS = {
+    'bash': bash,
+    'php': php,
+    'node': node,
+    'http_client': http_client,
+    'http_server': http_server,
+    'python': python
+}
+
+# Create adapter instances
+bash = BashAdapter('bash')
+python = PythonAdapter('python')
+http_client = HttpClientAdapter('http_client')
 
 print("Running example_cli.py")
 
