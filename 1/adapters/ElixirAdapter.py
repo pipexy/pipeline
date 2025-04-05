@@ -1,5 +1,5 @@
 """
-RubyAdapter.py
+ElixirAdapter.py
 """
 import subprocess
 import tempfile
@@ -8,22 +8,22 @@ import json
 from .ChainableAdapter import ChainableAdapter
 
 
-class RubyAdapter(ChainableAdapter):
-    """Adapter for executing Ruby code."""
+class ElixirAdapter(ChainableAdapter):
+    """Adapter for executing Elixir code."""
 
-    def code(self, ruby_code):
-        """Set Ruby code to execute."""
-        self._params['code'] = ruby_code
+    def code(self, elixir_code):
+        """Set Elixir code to execute."""
+        self._params['code'] = elixir_code
         return self
 
     def script(self, script_path):
-        """Set Ruby script path to execute."""
+        """Set Elixir script path to execute."""
         self._params['script'] = script_path
         return self
 
     def _execute_self(self, input_data=None):
         # Create temporary files
-        ruby_file = None
+        elixir_file = None
         input_file = None
 
         try:
@@ -36,44 +36,47 @@ class RubyAdapter(ChainableAdapter):
                         f.write(str(input_data))
                     input_file = f.name
 
-            # Get the Ruby code/script
+            # Get the Elixir code/script
             code = self._params.get('code')
             script = self._params.get('script')
 
             if not code and not script:
-                raise ValueError("Ruby adapter requires either 'code' or 'script' parameter")
+                raise ValueError("Elixir adapter requires either 'code' or 'script' parameter")
 
             if code:
-                # Create a Ruby file with input handling wrapper
-                with tempfile.NamedTemporaryFile(suffix=".rb", delete=False, mode='w+') as f:
+                # Create an Elixir file with input handling wrapper
+                with tempfile.NamedTemporaryFile(suffix=".exs", delete=False, mode='w+') as f:
                     wrapper_code = """
-                    require 'json'
-
                     # Read input data if available
-                    input_data = nil
-                    if ARGV.length > 0
-                      input_file = ARGV[0]
-                      if File.exist?(input_file)
-                        begin
-                          input_text = File.read(input_file)
-                          input_data = JSON.parse(input_text) rescue input_text
-                        rescue => e
-                          STDERR.puts "Warning: Failed to read input file: #{e.message}"
+                    input_data = case System.argv() do
+                      [input_file] ->
+                        if File.exists?(input_file) do
+                          case File.read(input_file) do
+                            {:ok, content} ->
+                              try do
+                                Jason.decode!(content)
+                              rescue
+                                _ -> content
+                              end
+                            _ -> nil
+                          end
+                        else
+                          nil
                         end
-                      end
+                      _ -> nil
                     end
 
                     # User code starts here
                     %s
                     """
                     f.write(wrapper_code % code)
-                    ruby_file = f.name
+                    elixir_file = f.name
             else:
                 # Use the provided script
-                ruby_file = script
+                elixir_file = script
 
-            # Execute the Ruby code
-            cmd = f"ruby {ruby_file}"
+            # Execute the Elixir script
+            cmd = f"elixir {elixir_file}"
             if input_file:
                 cmd += f" {input_file}"
 
@@ -85,7 +88,7 @@ class RubyAdapter(ChainableAdapter):
             )
 
             if run_result.returncode != 0:
-                raise RuntimeError(f"Ruby execution failed: {run_result.stderr}")
+                raise RuntimeError(f"Elixir execution failed: {run_result.stderr}")
 
             # Return the output
             output = run_result.stdout.strip()
@@ -101,8 +104,8 @@ class RubyAdapter(ChainableAdapter):
 
         finally:
             # Clean up temporary files
-            if ruby_file and os.path.exists(ruby_file) and 'script' not in self._params:
-                os.unlink(ruby_file)
+            if elixir_file and os.path.exists(elixir_file) and 'script' not in self._params:
+                os.unlink(elixir_file)
             if input_file and os.path.exists(input_file):
                 os.unlink(input_file)
 

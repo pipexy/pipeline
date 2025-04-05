@@ -1,5 +1,5 @@
 """
-PHPAdapter.py
+SwiftAdapter.py
 """
 import subprocess
 import tempfile
@@ -8,22 +8,22 @@ import json
 from .ChainableAdapter import ChainableAdapter
 
 
-class PHPAdapter(ChainableAdapter):
-    """Adapter for executing PHP code."""
+class SwiftAdapter(ChainableAdapter):
+    """Adapter for executing Swift code."""
 
-    def code(self, php_code):
-        """Set PHP code to execute."""
-        self._params['code'] = php_code
+    def code(self, swift_code):
+        """Set Swift code to execute."""
+        self._params['code'] = swift_code
         return self
 
     def script(self, script_path):
-        """Set PHP script path to execute."""
+        """Set Swift script path to execute."""
         self._params['script'] = script_path
         return self
 
     def _execute_self(self, input_data=None):
         # Create temporary files
-        php_file = None
+        swift_file = None
         input_file = None
 
         try:
@@ -36,44 +36,49 @@ class PHPAdapter(ChainableAdapter):
                         f.write(str(input_data))
                     input_file = f.name
 
-            # Get the PHP code/script
+            # Get the Swift code/script
             code = self._params.get('code')
             script = self._params.get('script')
 
             if not code and not script:
-                raise ValueError("PHP adapter requires either 'code' or 'script' parameter")
+                raise ValueError("Swift adapter requires either 'code' or 'script' parameter")
 
             if code:
-                # Create a PHP file with wrapper for input handling
-                with tempfile.NamedTemporaryFile(suffix=".php", delete=False, mode='w+') as f:
-                    wrapper_code = """<?php
+                # Create a Swift file with a wrapper for input handling
+                with tempfile.NamedTemporaryFile(suffix=".swift", delete=False, mode='w+') as f:
+                    wrapper_code = """
+                    import Foundation
+
                     // Parse input if available
-                    $input_data = null;
-                    if ($argc > 1) {
-                        $input_path = $argv[1];
-                        if (file_exists($input_path)) {
-                            $content = file_get_contents($input_path);
+                    var inputData: Any? = nil
+                    if CommandLine.arguments.count > 1 {
+                        let inputPath = CommandLine.arguments[1]
+                        if let data = try? Data(contentsOf: URL(fileURLWithPath: inputPath)) {
+                            let content = String(data: data, encoding: .utf8)
+                            
                             // Try to parse as JSON
-                            $json_data = json_decode($content, true);
-                            if (json_last_error() === JSON_ERROR_NONE) {
-                                $input_data = $json_data;
-                            } else {
-                                $input_data = $content;
+                            if let jsonData = content?.data(using: .utf8) {
+                                do {
+                                    inputData = try JSONSerialization.jsonObject(with: jsonData, options: [])
+                                } catch {
+                                    // If not valid JSON, use as string
+                                    inputData = content
+                                }
                             }
                         }
                     }
 
                     // User code starts here
                     %s
-                    ?>"""
+                    """
                     f.write(wrapper_code % code)
-                    php_file = f.name
+                    swift_file = f.name
             else:
                 # Use the provided script path
-                php_file = script
+                swift_file = script
 
-            # Execute PHP file
-            cmd = f"php {php_file}"
+            # Execute Swift file
+            cmd = f"swift {swift_file}"
             if input_file:
                 cmd += f" {input_file}"
 
@@ -85,7 +90,7 @@ class PHPAdapter(ChainableAdapter):
             )
 
             if result.returncode != 0:
-                raise RuntimeError(f"PHP execution failed: {result.stderr}")
+                raise RuntimeError(f"Swift execution failed: {result.stderr}")
 
             # Return the output
             output = result.stdout.strip()
@@ -99,10 +104,14 @@ class PHPAdapter(ChainableAdapter):
 
             return output
 
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Swift execution error: {e.stderr}")
+        except Exception as e:
+            raise RuntimeError(f"Swift adapter error: {str(e)}")
         finally:
             # Clean up temporary files
-            if php_file and os.path.exists(php_file) and 'script' not in self._params:
-                os.unlink(php_file)
+            if swift_file and os.path.exists(swift_file) and 'script' not in self._params:
+                os.unlink(swift_file)
 
             if input_file and os.path.exists(input_file):
                 os.unlink(input_file)

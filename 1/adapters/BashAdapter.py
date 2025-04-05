@@ -1,68 +1,116 @@
-#!/usr/bin/env python3
-# BashAdapter.py
-
-from .BaseAdapter import BaseAdapter
+"""
+BashAdapter.py
+"""
 import subprocess
+import tempfile
 import os
 import json
-import tempfile
-from typing import Dict, Any, List, Union
+from .ChainableAdapter import ChainableAdapter
 
-class BashAdapter(BaseAdapter):
-    """Adapter wykonujący skrypty bash."""
 
-    def __init__(self, params: Dict[str, Any]):
-        """Inicjalizacja adaptera."""
-        super().__init__(params)
+class BashAdapter(ChainableAdapter):
+    """Adapter for executing Bash scripts."""
 
-    def execute(self, input_data=None):
-        # Zapisz dane wejściowe do pliku tymczasowego (jeśli istnieją)
+    def command(self, cmd):
+        """Set command to execute."""
+        self._params['command'] = cmd
+        return self
+
+    def script(self, script_content):
+        """Set script content to execute."""
+        self._params['script'] = script_content
+        return self
+
+    def file(self, file_path):
+        """Set script file to execute."""
+        self._params['file'] = file_path
+        return self
+
+    def _execute_self(self, input_data=None):
+        # Create temporary files
+        script_file = None
         input_file = None
-        if input_data:
-            with tempfile.NamedTemporaryFile(delete=False, mode='w+') as f:
-                if isinstance(input_data, dict) or isinstance(input_data, list):
-                    json.dump(input_data, f)
+
+        try:
+            # Handle input data
+            if input_data:
+                with tempfile.NamedTemporaryFile(delete=False, mode='w+') as f:
+                    if isinstance(input_data, (dict, list)):
+                        json.dump(input_data, f)
+                    else:
+                        f.write(str(input_data))
+                    input_file = f.name
+
+            # Get the command, script or file
+            command = self._params.get('command')
+            script = self._params.get('script')
+            file_path = self._params.get('file')
+
+            if command:
+                # Direct command execution
+                if input_file:
+                    cmd = f"{command} {input_file}"
                 else:
-                    f.write(str(input_data))
-                input_file = f.name
+                    cmd = command
 
-        # Sprawdź czy podano komendę
-        command = self._params.get('command')
-        if not command:
-            raise ValueError("Bash adapter requires 'command' method")
+            elif script:
+                # Create a script file with content
+                with tempfile.NamedTemporaryFile(suffix=".sh", delete=False, mode='w+') as f:
+                    f.write("#!/bin/bash\n")
+                    f.write(script)
+                    script_file = f.name
+                os.chmod(script_file, 0o755)
 
-        # Zastąp placeholder $INPUT ścieżką do pliku wejściowego
-        if input_file:
-            command = command.replace('$INPUT', input_file)
+                cmd = script_file
+                if input_file:
+                    cmd += f" {input_file}"
 
-        # Wykonaj komendę
-        env = os.environ.copy()
-        env.update(self._params.get('env', {}))
+            elif file_path:
+                # Use existing script file
+                if not os.path.exists(file_path):
+                    raise FileNotFoundError(f"Script file not found: {file_path}")
+                os.chmod(file_path, 0o755)
 
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            env=env
-        )
+                cmd = file_path
+                if input_file:
+                    cmd += f" {input_file}"
 
-        # Usuń plik tymczasowy jeśli był utworzony
-        if input_file and os.path.exists(input_file):
-            os.unlink(input_file)
+            else:
+                raise ValueError("BashAdapter requires one of 'command', 'script', or 'file' parameters")
 
-        # Sprawdź wynik
-        if result.returncode != 0 and not self._params.get('ignore_errors', False):
-            raise RuntimeError(f"Bash command failed: {result.stderr}")
+            # Execute the command
+            result = subprocess.run(
+                cmd,
+                shell=True,
+                capture_output=True,
+                text=True
+            )
 
-        # Zwróć wynik
-        output = result.stdout.strip()
+            # Check for errors
+            if result.returncode != 0 and 'ignore_errors' not in self._params:
+                raise RuntimeError(f"Bash execution failed: {result.stderr}")
 
-        # Automatycznie parsuj JSON jeśli wygląda jak JSON
-        if output.startswith('{') or output.startswith('['):
-            try:
-                return json.loads(output)
-            except json.JSONDecodeError:
-                pass
+            # Return the output
+            output = result.stdout.strip()
 
-        return output
+            # Try parsing as JSON if it looks like JSON
+            if output.startswith('{') or output.startswith('['):
+                try:
+                    return json.loads(output)
+                except json.JSONDecodeError:
+                    pass
+
+            return output
+
+        finally:
+            # Clean up temporary files
+            if script_file and os.path.exists(script_file) and 'script' in self._params:
+                os.unlink(script_file)
+
+            if input_file and os.path.exists(input_file):
+                os.unlink(input_file)
+
+    def reset(self):
+        """Resets adapter parameters."""
+        self._params = {}
+        return self

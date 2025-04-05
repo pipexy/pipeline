@@ -1,5 +1,5 @@
 """
-RubyAdapter.py
+R_Adapter.py
 """
 import subprocess
 import tempfile
@@ -8,22 +8,22 @@ import json
 from .ChainableAdapter import ChainableAdapter
 
 
-class RubyAdapter(ChainableAdapter):
-    """Adapter for executing Ruby code."""
+class R_Adapter(ChainableAdapter):
+    """Adapter for executing R code."""
 
-    def code(self, ruby_code):
-        """Set Ruby code to execute."""
-        self._params['code'] = ruby_code
+    def code(self, r_code):
+        """Set R code to execute."""
+        self._params['code'] = r_code
         return self
 
     def script(self, script_path):
-        """Set Ruby script path to execute."""
+        """Set R script path to execute."""
         self._params['script'] = script_path
         return self
 
     def _execute_self(self, input_data=None):
         # Create temporary files
-        ruby_file = None
+        r_file = None
         input_file = None
 
         try:
@@ -36,44 +36,49 @@ class RubyAdapter(ChainableAdapter):
                         f.write(str(input_data))
                     input_file = f.name
 
-            # Get the Ruby code/script
+            # Get the R code/script
             code = self._params.get('code')
             script = self._params.get('script')
 
             if not code and not script:
-                raise ValueError("Ruby adapter requires either 'code' or 'script' parameter")
+                raise ValueError("R adapter requires either 'code' or 'script' parameter")
 
             if code:
-                # Create a Ruby file with input handling wrapper
-                with tempfile.NamedTemporaryFile(suffix=".rb", delete=False, mode='w+') as f:
+                # Create an R file with input handling wrapper
+                with tempfile.NamedTemporaryFile(suffix=".R", delete=False, mode='w+') as f:
                     wrapper_code = """
-                    require 'json'
+                    # Parse command line arguments
+                    args <- commandArgs(trailingOnly = TRUE)
+                    input_data <- NULL
 
                     # Read input data if available
-                    input_data = nil
-                    if ARGV.length > 0
-                      input_file = ARGV[0]
-                      if File.exist?(input_file)
-                        begin
-                          input_text = File.read(input_file)
-                          input_data = JSON.parse(input_text) rescue input_text
-                        rescue => e
-                          STDERR.puts "Warning: Failed to read input file: #{e.message}"
-                        end
-                      end
-                    end
+                    if (length(args) > 0) {
+                      input_file <- args[1]
+                      if (file.exists(input_file)) {
+                        # Try to read as JSON first
+                        tryCatch({
+                          input_data <- jsonlite::fromJSON(input_file)
+                        }, error = function(e) {
+                          # Fall back to plain text
+                          input_data <- readLines(input_file, warn = FALSE)
+                          if (length(input_data) == 1) {
+                            input_data <- input_data[1]
+                          }
+                        })
+                      }
+                    }
 
                     # User code starts here
                     %s
                     """
                     f.write(wrapper_code % code)
-                    ruby_file = f.name
+                    r_file = f.name
             else:
-                # Use the provided script
-                ruby_file = script
+                # Use the provided script path
+                r_file = script
 
-            # Execute the Ruby code
-            cmd = f"ruby {ruby_file}"
+            # Execute the R script
+            cmd = f"Rscript {r_file}"
             if input_file:
                 cmd += f" {input_file}"
 
@@ -85,7 +90,7 @@ class RubyAdapter(ChainableAdapter):
             )
 
             if run_result.returncode != 0:
-                raise RuntimeError(f"Ruby execution failed: {run_result.stderr}")
+                raise RuntimeError(f"R execution failed: {run_result.stderr}")
 
             # Return the output
             output = run_result.stdout.strip()
@@ -101,8 +106,8 @@ class RubyAdapter(ChainableAdapter):
 
         finally:
             # Clean up temporary files
-            if ruby_file and os.path.exists(ruby_file) and 'script' not in self._params:
-                os.unlink(ruby_file)
+            if r_file and os.path.exists(r_file) and 'script' not in self._params:
+                os.unlink(r_file)
             if input_file and os.path.exists(input_file):
                 os.unlink(input_file)
 

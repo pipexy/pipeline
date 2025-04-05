@@ -9,15 +9,28 @@ from .ChainableAdapter import ChainableAdapter
 
 
 class GoAdapter(ChainableAdapter):
-    """Adapter for executing Go code."""
+    """Adapter for compiling and executing Go code."""
+
+    def code(self, go_code):
+        """Set Go code to execute."""
+        self._params['code'] = go_code
+        return self
+
+    def file(self, file_path):
+        """Set Go file to execute."""
+        self._params['file'] = file_path
+        return self
 
     def _execute_self(self, input_data=None):
         # Create temporary files
         go_file = None
         input_file = None
-        compiled_file = None
+        temp_dir = None
 
         try:
+            # Create temp directory for Go modules
+            temp_dir = tempfile.mkdtemp()
+
             # Handle input data
             if input_data:
                 with tempfile.NamedTemporaryFile(delete=False, mode='w+') as f:
@@ -27,82 +40,83 @@ class GoAdapter(ChainableAdapter):
                         f.write(str(input_data))
                     input_file = f.name
 
-            # Get the Go code
+            # Get the Go code or file
             code = self._params.get('code')
-            if not code:
-                raise ValueError("Go adapter requires 'code' method")
+            file_path = self._params.get('file')
 
-            # Create a Go file
-            with tempfile.NamedTemporaryFile(suffix=".go", delete=False, mode='w+') as f:
-                # If no package main, wrap in a main package
-                if "package main" not in code:
-                    wrapped_code = """
-                    package main
+            if not code and not file_path:
+                raise ValueError("Go adapter requires either 'code' or 'file' parameter")
 
-                    import (
-                        "encoding/json"
-                        "fmt"
-                        "io/ioutil"
-                        "os"
-                    )
+            if code:
+                # Create a Go file with input handling wrapper
+                go_file = os.path.join(temp_dir, "main.go")
 
-                    func main() {
-                        var input interface{}
-                        
-                        if len(os.Args) > 1 {
-                            content, err := ioutil.ReadFile(os.Args[1])
-                            if err == nil {
-                                // Try to parse as JSON
-                                err = json.Unmarshal(content, &input)
-                                if err != nil {
-                                    // If not JSON, use as string
-                                    input = string(content)
-                                }
-                            }
+                wrapper_code = """
+                package main
+
+                import (
+                    "encoding/json"
+                    "fmt"
+                    "io/ioutil"
+                    "os"
+                )
+
+                func main() {
+                    // Read input data if provided
+                    var inputData interface{}
+                    if len(os.Args) > 1 {
+                        inputFile := os.Args[1]
+                        data, err := ioutil.ReadFile(inputFile)
+                        if err == nil {
+                            // Try to parse as JSON
+                            json.Unmarshal(data, &inputData)
                         }
-                        
-                        // User code starts here
-                        %s
                     }
-                    """
-                    f.write(wrapped_code % code)
-                else:
-                    f.write(code)
 
-                go_file = f.name
+                    // User code starts here
+                    %s
+                }
+                """
 
-            # Create a temporary name for the compiled executable
-            compiled_file = f"{go_file}_bin"
+                with open(go_file, 'w') as f:
+                    f.write(wrapper_code % code)
+            else:
+                # Use existing file
+                go_file = file_path
 
-            # Compile the Go code
-            compile_cmd = f"go build -o {compiled_file} {go_file}"
-            compile_result = subprocess.run(
-                compile_cmd,
-                shell=True,
-                capture_output=True,
-                text=True
-            )
+            # Initialize Go module if using code
+            if 'code' in self._params:
+                init_cmd = f"cd {temp_dir} && go mod init example.com/goapp"
+                init_result = subprocess.run(
+                    init_cmd,
+                    shell=True,
+                    capture_output=True,
+                    text=True
+                )
+                if init_result.returncode != 0:
+                    raise RuntimeError(f"Go module initialization failed: {init_result.stderr}")
 
-            if compile_result.returncode != 0:
-                raise RuntimeError(f"Go compilation failed: {compile_result.stderr}")
+            # Execute Go file
+            if 'code' in self._params:
+                cmd = f"cd {temp_dir} && go run main.go"
+            else:
+                cmd = f"go run {go_file}"
 
-            # Execute the compiled Go program
-            exec_cmd = f"{compiled_file}"
             if input_file:
-                exec_cmd += f" {input_file}"
+                cmd += f" {input_file}"
 
-            result = subprocess.run(
-                exec_cmd,
+            run_result = subprocess.run(
+                cmd,
                 shell=True,
                 capture_output=True,
                 text=True
             )
 
-            if result.returncode != 0:
-                raise RuntimeError(f"Go execution failed: {result.stderr}")
+            if run_result.returncode != 0:
+                raise RuntimeError(f"Go execution failed: {run_result.stderr}")
 
             # Return the output
-            output = result.stdout.strip()
+            output = run_result.stdout.strip()
 
             # Try parsing as JSON if it looks like JSON
             if output.startswith('{') or output.startswith('['):
@@ -115,14 +129,11 @@ class GoAdapter(ChainableAdapter):
 
         finally:
             # Clean up temporary files
-            if go_file and os.path.exists(go_file):
-                os.unlink(go_file)
-
+            import shutil
+            if temp_dir and os.path.exists(temp_dir) and 'code' in self._params:
+                shutil.rmtree(temp_dir)
             if input_file and os.path.exists(input_file):
                 os.unlink(input_file)
-
-            if compiled_file and os.path.exists(compiled_file):
-                os.unlink(compiled_file)
 
     def reset(self):
         """Resets adapter parameters."""
