@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.8] - 2025-04-05
+
+### Added
+- Changes in 1/adapters/conditional_adapter.py
+- Changes in 1/adapters/epcos_adapter.py
+- Changes in 1/adapters/escpos_adapter.py
+- Changes in 1/adapters/message_queue_adapter.py
+- Changes in 1/adapters/ml_adapter.py
+- Changes in 1/adapters/opencv_adapter.py
+- Changes in 1/adapters/pcl_adapter.py
+- Changes in 1/adapters/rpi_audio_adapter.py
+- Changes in 1/adapters/rtsp_adapter.py
+- Changes in 1/adapters/stt_adapter.py
+- Changes in 1/adapters/tts_adapter.py
+- Changes in 1/adapters/websocket_adapter.py
+- Changes in 1/adapters/zpl_adapter.py
+
 ## [0.1.7] - 2025-04-05
 
 ### Added
