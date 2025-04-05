@@ -40,6 +40,7 @@ from .DatabaseAdapter import DatabaseAdapter
 from .RegexAdapter import RegexAdapter
 from .GraphQLAdapter import GraphQLAdapter
 from .FileAdapter import FileAdapter
+from .BrowserAdapter import BrowserAdapter
 
 # Create adapter instances - passing name parameter as required
 bash = BashAdapter('bash')
@@ -72,6 +73,7 @@ database = DatabaseAdapter('database')
 regex = RegexAdapter('regex')
 graphql = GraphQLAdapter('graphql')
 file = FileAdapter('file')
+browser = BrowserAdapter('browser')
 
 # Dictionary of available adapters
 ADAPTERS = {
@@ -105,7 +107,8 @@ ADAPTERS = {
     'database': database,
     'regex': regex,
     'graphql': graphql,
-    'file': file
+    'file': file,
+    'browser': browser
 }
 
 # Helper functions for pipeline usage

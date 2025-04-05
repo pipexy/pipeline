@@ -2,10 +2,14 @@
 ChainableAdapter.py - Base class for all chainable adapters
 """
 
-
 class ChainableAdapter:
     def __init__(self, params=None):
-        self._params = params or {}
+        # Ensure _params is always a dictionary
+        if params is None or isinstance(params, str):
+            self._params = {}
+        else:
+            self._params = params
+
         self._result = None
         self._executed = False
         self._input_data = None
@@ -25,15 +29,19 @@ class ChainableAdapter:
     def __call__(self, input_data=None):
         """Make adapter callable for pipeline execution"""
         # Create new instance with same parameters
-        new_instance = self.__class__(self._params.copy() if self._params else {})
+        if isinstance(self._params, dict):
+            new_params = self._params.copy()
+        else:
+            new_params = {}
+
+        new_instance = self.__class__(new_params)
         # Store the input data for execution
         new_instance._input_data = input_data
         return new_instance
 
     def __getattr__(self, name):
         """Handle method chaining without relying on ADAPTERS dictionary"""
-
-        # If attribute is not found, we'll return a method that returns self
+        # If attribute is not found, return a method that returns self
         # This helps with method chaining
         def method(*args, **kwargs):
             return self
