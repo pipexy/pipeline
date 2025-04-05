@@ -1,6 +1,6 @@
-"""
-XMLAdapter.py
-"""
+#!/usr/bin/env python3
+# XMLAdapter.py
+
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
 import os

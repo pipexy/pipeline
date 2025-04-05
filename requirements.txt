@@ -1,0 +1,14 @@
+flask
+requests
+beautifulsoup4
+jsonpath-ng
+markdown
+sqlalchemy
+pymysql
+psycopg2-binary
+lxml
+pyyaml
+jinja2
+# pip install -r requirements.txt
+# pip install requests beautifulsoup4 markdown jsonpath-ng
+# pip install sqlalchemy pymysql psycopg2-binary lxml pyyaml jinja2

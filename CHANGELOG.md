@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.10] - 2025-04-05
+
+### Added
+- Changes in 1/adapters/FileAdapter.py
+- Changes in 1/adapters/ZplAdapter.py
+- Changes in 1/api2db.py
+- Changes in 1/examples/api2db.py
+
 ## [0.1.9] - 2025-04-05
 
 ### Added

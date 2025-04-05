@@ -1,6 +1,6 @@
-"""
-YAMLAdapter.py
-"""
+#!/usr/bin/env python3
+# YAMLAdapter.py
+
 import yaml
 import os
 import json

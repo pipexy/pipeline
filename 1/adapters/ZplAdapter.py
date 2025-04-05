@@ -1,20 +1,39 @@
-# Adapter dla języka ZPL
-"""
-zpl_adapter.py
-"""
+#!/usr/bin/env python3
+# zpl_adapter.py
 
 """
-Adapter do obsługi języka ZPL (Zebra Programming Language).
+Adapter for ZPL (Zebra Programming Language)
+
+This module provides a specialized adapter for handling ZPL (Zebra Programming Language) label generation and rendering.
+
+The ZplAdapter supports multiple rendering modes:
+- Labelary API rendering (default)
+- Internal rendering
+
+Key Features:
+- Supports dynamic ZPL code processing
+- Configurable rendering parameters (DPI, label dimensions)
+- Multiple rendering backends
+- Error handling for invalid or missing ZPL code
+
+Supported Rendering Modes:
+1. 'labelary': Uses Labelary API for label preview and rendering
+2. 'internal': Uses internal rendering mechanism
+
+Example Usage:
+    adapter = ZplAdapter()
+    result = adapter.execute({'zpl': '^XA...^XZ', 'render_mode': 'labelary'})
 """
+# Adapter do obsługi języka ZPL (Zebra Programming Language).
 
 import tempfile
 import os
 import json
 import requests
-from .base import BaseAdapter
+from .ChainableAdapter import ChainableAdapter
 
 
-class ZplAdapter(BaseAdapter):
+class ZplAdapter(ChainableAdapter):
     """Adapter do renderowania kodu ZPL."""
 
     def _execute_self(self, input_data=None):
@@ -130,3 +149,44 @@ class ZplAdapter(BaseAdapter):
             raise RuntimeError("Internal ZPL renderer not available. Use 'labelary' mode instead.")
         except Exception as e:
             raise RuntimeError(f"Error rendering ZPL internally: {e}")
+
+    def render_mode(self, mode):
+        """Ustawia tryb renderowania."""
+        self._params['render_mode'] = mode
+        return self
+
+    def dpi(self, dpi):
+        """Ustawia rozdzielczość DPI."""
+        self._params['dpi'] = dpi
+        return self
+
+    def dimensions(self, width, height):
+        """Ustawia wymiary etykiety."""
+        self._params['width'] = width
+        self._params['height'] = height
+        return self
+
+    def output(self, file_path):
+        """Ustawia ścieżkę wyjściową dla zapisania rezultatu."""
+        self._params['output_path'] = file_path
+        return self
+
+    def format(self, format_type):
+        """Ustawia format wyjściowy (np. pdf, png)."""
+        self._params['format'] = format_type
+        return self
+
+    def api_url(self, url):
+        """Ustawia niestandardowy URL API Labelary."""
+        self._params['api_url'] = url
+        return self
+
+    def code(self, zpl_code):
+        """Ustawia kod ZPL do renderowania."""
+        self._params['code'] = zpl_code
+        return self
+
+    def reset(self):
+        """Resetuje parametry adaptera."""
+        self._params = {}
+        return self

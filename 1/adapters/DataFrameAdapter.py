@@ -102,14 +102,104 @@ class DataFrameAdapter(ChainableAdapter):
         return self
 
     def _execute_self(self, input_data=None):
-        try:
-            # Operations that populate self._df
-            if self._operation == 'load_data':
-                data = self._params.get('data')
-                self._df = pd.DataFrame(data)
-                return self._df
+        # Operations that populate self._df
+        if self._operation == 'load_data':
+            data = self._params.get('data')
+            self._df = pd.DataFrame(data)
+            return self._df
 
-            elif self._operation == 'read_csv':
+        elif self._operation == 'read_csv':
+            file_path = self._params.get('file_path')
+            kwargs = self._params.get('csv_kwargs', {})
+            try:
+                self._df = pd.read_csv(file_path, **kwargs)
+            except Exception as e:
+                raise RuntimeError(f"Error reading CSV file: {str(e)}")
+
+        elif self._operation == 'read_excel':
+            file_path = self._params.get('file_path')
+            kwargs = self._params.get('excel_kwargs', {})
+            try:
+                self._df = pd.read_excel(file_path, **kwargs)
+            except Exception as e:
+                raise RuntimeError(f"Error reading Excel file: {str(e)}")
+
+        elif self._operation == 'read_json':
+            source = self._params.get('source')
+            kwargs = self._params.get('json_kwargs', {})
+            try:
+                if os.path.exists(source):
+                    self._df = pd.read_json(source, **kwargs)
+                else:
+                    self._df = pd.read_json(source, **kwargs)
+            except Exception as e:
+                raise RuntimeError(f"Error reading JSON: {str(e)}")
+
+        # Use input_data if available and no operation is specified
+        if self._df is None and input_data is not None:
+            if isinstance(input_data, pd.DataFrame):
+                self._df = input_data
+            else:
+                try:
+                    self._df = pd.DataFrame(input_data)
+                except Exception as e:
+                    raise RuntimeError(f"Error converting input data to DataFrame: {str(e)}")
+
+        # Operations that transform existing DataFrame
+        if self._df is not None:
+            if self._operation == 'filter':
+                condition = self._params.get('condition')
+                if callable(condition):
+                    self._df = self._df[condition(self._df)]
+                else:
+                    self._df = self._df.query(condition)
+
+            elif self._operation == 'select':
+                columns = self._params.get('columns')
+                self._df = self._df[columns]
+
+            elif self._operation == 'sort':
+                by = self._params.get('by')
+                ascending = self._params.get('ascending', True)
+                self._df = self._df.sort_values(by=by, ascending=ascending)
+
+            elif self._operation == 'groupby':
+                columns = self._params.get('columns')
+                agg_dict = self._params.get('agg_dict')
+                if agg_dict:
+                    self._df = self._df.groupby(columns).agg(agg_dict).reset_index()
+                else:
+                    self._df = self._df.groupby(columns).sum().reset_index()
+
+            elif self._operation == 'apply':
+                func = self._params.get('func')
+                self._df = self._df.apply(func)
+
+            elif self._operation == 'to_csv':
                 file_path = self._params.get('file_path')
                 kwargs = self._params.get('csv_kwargs', {})
-                self._df = pd.read_csv
+                if file_path:
+                    self._df.to_csv(file_path, **kwargs)
+                    return {"file_path": file_path, "rows": len(self._df)}
+                else:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as f:
+                        self._df.to_csv(f.name, **kwargs)
+                        return {"file_path": f.name, "rows": len(self._df)}
+
+            elif self._operation == 'to_json':
+                file_path = self._params.get('file_path')
+                kwargs = self._params.get('json_kwargs', {})
+                if file_path:
+                    self._df.to_json(file_path, **kwargs)
+                    return {"file_path": file_path, "rows": len(self._df)}
+                else:
+                    return self._df.to_json(**kwargs)
+
+            elif self._operation == 'to_dict':
+                orient = self._params.get('orient', 'records')
+                return self._df.to_dict(orient=orient)
+
+            elif self._operation == 'describe':
+                return self._df.describe().to_dict()
+
+        return self._df
