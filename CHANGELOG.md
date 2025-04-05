@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.12] - 2025-04-05
+
+### Added
+- Changes in 1/approach1.py
+- Changes in 1/approach2.py
+- Changes in 1/approach3.py
+- Changes in 1/file_write_test.py
+- Changes in 1/file_write_test_fixed.py
+- Changes in 1/first.md
+- Changes in 1/fixed_adapter_test.py
+- Changes in 1/pipeline_test_fixed.py
+- Changes in 1/server.py
+- Changes in 1/simple_file_test.py
+- Changes in 1/softreck2md.py
+
 ## [0.1.11] - 2025-04-05
 
 ### Added

@@ -45,20 +45,34 @@ class BrowserAdapter(ChainableAdapter):
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
 
-            # Use WebDriver Manager to handle driver compatibility
-            from webdriver_manager.chrome import ChromeDriverManager
-
             # Set up headless Chrome
             chrome_options = Options()
             chrome_options.add_argument("--headless")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
 
-            # Set up the service with automatic ChromeDriver download
-            service = Service(ChromeDriverManager().install())
+            # Try different initialization methods
+            try:
+                # Try using WebDriver Manager if available
+                try:
+                    from webdriver_manager.chrome import ChromeDriverManager
+                    service = Service(ChromeDriverManager().install())
+                    self._driver = webdriver.Chrome(service=service, options=chrome_options)
+                except ImportError:
+                    print("webdriver-manager not found, trying direct Chrome initialization")
+                    self._driver = webdriver.Chrome(options=chrome_options)
+            except Exception as e:
+                # Try Firefox as fallback
+                try:
+                    print("Chrome initialization failed, trying Firefox")
+                    from selenium.webdriver.firefox.options import Options as FirefoxOptions
+                    firefox_options = FirefoxOptions()
+                    firefox_options.add_argument("--headless")
+                    self._driver = webdriver.Firefox(options=firefox_options)
+                except Exception as ff_error:
+                    raise RuntimeError(
+                        f"Browser initialization failed. Please run: pip install webdriver-manager\nOriginal error: {str(e)}")
 
-            # Initialize the browser with the service
-            self._driver = webdriver.Chrome(service=service, options=chrome_options)
 
             # Use provided URL or use input_data if it's a string
             url = self._url
