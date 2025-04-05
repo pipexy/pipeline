@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # PythonAdapter.py
 
-import BaseAdapter
+from .BaseAdapter import BaseAdapter
 
 class PythonAdapter(BaseAdapter):
     """Adapter wykonujący kod Python."""

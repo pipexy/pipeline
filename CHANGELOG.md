@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.7] - 2025-04-05
+
+### Added
+- Changes in 1/adapters/CSharpAdapter.py
+- Changes in 1/adapters/ChainableAdapter.py
+- Changes in 1/adapters/GoAdapter.py
+- Changes in 1/adapters/JavaAdapter.py
+- Changes in 1/adapters/JavaScriptAdapter.py
+- Changes in 1/adapters/RubyAdapter.py
+- Changes in 1/tests.py
+- Changes in 1/tests/README.md
+
+### Removed
+- Changes in 1/adapters.py
+
 ## [0.1.6] - 2025-04-05
 
 ### Added

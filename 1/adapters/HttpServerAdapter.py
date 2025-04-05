@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import requests
 from typing import Dict, Any, List, Union
-import ChainableAdapter
+from .ChainableAdapter import ChainableAdapter
 
 class HttpServerAdapter(ChainableAdapter):
     """Adapter tworzący endpoint HTTP."""
