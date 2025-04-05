@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # adapters.py
 import subprocess
 import os

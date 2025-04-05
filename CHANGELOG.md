@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.5] - 2025-04-05
+
+### Added
+- Changes in adapters/ChainableAdapter.py
+
+### Removed
+- Changes in 1/adapters_extended.py
+
 ## [0.1.4] - 2025-04-05
 
 ### Added

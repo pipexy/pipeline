@@ -7,16 +7,12 @@ http_server_adapter.py
 """
 http_client_adapter.py
 """
-
-# adapters_extended.py
+from flask import Flask, request, jsonify
 import subprocess
-import os
-import json
 import tempfile
 import requests
 from typing import Dict, Any, List, Union
-import core.ChainableAdapter
-
+import ChainableAdapter
 
 class HttpServerAdapter(ChainableAdapter):
     """Adapter tworzący endpoint HTTP."""
@@ -28,7 +24,6 @@ class HttpServerAdapter(ChainableAdapter):
     def get_app(cls):
         """Zwraca lub tworzy aplikację Flask."""
         if cls._app is None:
-            from flask import Flask
             cls._app = Flask(__name__)
 
             # Dodaj istniejące trasy
@@ -40,7 +35,6 @@ class HttpServerAdapter(ChainableAdapter):
     @classmethod
     def _add_route_to_app(cls, route_info):
         """Dodaje trasę do aplikacji Flask."""
-        from flask import request, jsonify
 
         app = cls.get_app()
         path = route_info['path']
@@ -115,6 +109,12 @@ class HttpServerAdapter(ChainableAdapter):
         """Uruchamia serwer HTTP."""
         app = cls.get_app()
         app.run(host=host, port=port)
+
+    @classmethod
+    def stop_server(cls):
+        """Zatrzymuje serwer HTTP."""
+        import signal
+        import subprocess
 
 
 # Tworzenie i rejestracja adapterów

@@ -1,5 +1,5 @@
 # examples.py
-from adapters_extended import bash, http_client, http_server, python, database, file, HttpServerAdapter
+from adapters import bash, http_client, http_server, python, database, file, HttpServerAdapter
 
 # Przykład 1: Serwer HTTP przetwarzający dane z Pythona
 server_config = http_server.path('/api/hello').methods(['GET', 'POST']).code('''

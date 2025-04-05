@@ -1,10 +1,12 @@
+#!/usr/bin/env python3
+
 # pipeline_engine.py
 """
 Silnik wykonujący sekwencje adapterów
 """
 
 from dsl_parser import DotNotationParser, YamlDSLParser
-from adapters_extended import ADAPTERS
+from adapters import ADAPTERS
 
 
 class PipelineEngine:

@@ -1,5 +1,5 @@
 # advanced_examples.py
-from adapters_extended import bash, http_client, http_server, python, database, file
+from adapters import bash, http_client, http_server, python, database, file
 
 # Przykład 1: ETL pipeline - pobierz dane, przekształć, załaduj do bazy
 etl_result = http_client.url('https://api.example.com/data').method('GET').python.code('''

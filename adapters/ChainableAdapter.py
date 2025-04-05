@@ -1,3 +1,11 @@
+import subprocess
+import os
+import json
+import tempfile
+import requests
+from typing import Dict, Any, List, Union
+
+ADAPTERS = {}
 
 class ChainableAdapter:
     """Bazowa klasa dla adapterów, które można łączyć."""

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # dsl_parser.py
 import re
 import yaml

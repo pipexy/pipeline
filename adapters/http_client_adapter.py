@@ -2,16 +2,13 @@
 """
 http_client_adapter.py
 """
-
-# adapters_extended.py
 import subprocess
 import os
 import json
 import tempfile
 import requests
-import core.ChainableAdapter
+import ChainableAdapter
 from typing import Dict, Any, List, Union
-
 
 
 
@@ -56,6 +53,7 @@ class HttpClientAdapter(ChainableAdapter):
             return response.json()
 
         return response.text
+
 
 
 

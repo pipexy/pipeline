@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-from adapters_extended import bash, http_client, python
+# example_cli.py
+
+from adapters import bash, http_client, python
 
 print("Running example_cli.py")
 

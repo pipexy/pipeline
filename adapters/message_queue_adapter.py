@@ -4,7 +4,7 @@ message_queue_adapter.py
 """
 
 # message_queue_adapter.py
-from adapters_extended import ChainableAdapter
+from adapters import ChainableAdapter
 import json
 import time
 

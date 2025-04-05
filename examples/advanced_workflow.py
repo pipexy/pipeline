@@ -1,5 +1,5 @@
 # advanced_workflow.py
-from adapters_extended import bash, http_client, http_server, python, database, file
+from adapters import bash, http_client, http_server, python, database, file
 from message_queue_adapter import message_queue
 from websocket_adapter import websocket
 from ml_adapter import ml

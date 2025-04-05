@@ -2,6 +2,10 @@
 """
 python_adapter.py
 """
+import os
+import json
+import ChainableAdapter
+
 
 
 class PythonAdapter(ChainableAdapter):
@@ -36,3 +40,4 @@ class PythonAdapter(ChainableAdapter):
             return globals_dict.get('result')
 
         return None
+

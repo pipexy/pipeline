@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # dsl_helpers.py
 from adapters import bash, php, python, http, node
 

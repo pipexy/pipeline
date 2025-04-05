@@ -9,7 +9,7 @@ import json
 import time
 import os
 import re
-from adapters_extended import ADAPTERS
+from adapters import ADAPTERS
 from dsl_parser import YamlDSLParser
 
 

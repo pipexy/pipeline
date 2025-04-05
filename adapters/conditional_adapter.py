@@ -4,7 +4,7 @@ conditional_adapter.py
 """
 
 # conditional_adapter.py
-from adapters_extended import ChainableAdapter
+from adapters import ChainableAdapter
 
 
 class ConditionalAdapter(ChainableAdapter):

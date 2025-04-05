@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+
+# test_parser.py
+
 from dsl_parser import DotNotationParser
-from adapters_extended import ADAPTERS
+from adapters import ADAPTERS
 
 # Test the parser directly
 expression = 'bash.command("echo test > test.txt && cat test.txt")'

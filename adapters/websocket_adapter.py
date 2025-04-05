@@ -4,7 +4,7 @@ websocket_adapter.py
 """
 
 # websocket_adapter.py
-from adapters_extended import ChainableAdapter
+from adapters import ChainableAdapter
 import json
 import threading
 import time

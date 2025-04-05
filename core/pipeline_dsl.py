@@ -1,7 +1,7 @@
 # pipeline_dsl.py
 import yaml
 import json
-from adapters_extended import ADAPTERS
+from adapters import ADAPTERS
 
 
 class PipelineDSL:

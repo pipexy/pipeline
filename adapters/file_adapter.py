@@ -2,7 +2,9 @@
 """
 file_adapter.py
 """
-
+import os
+import json
+import ChainableAdapter
 
 class FileAdapter(ChainableAdapter):
     """Adapter do operacji na plikach."""

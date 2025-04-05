@@ -1,5 +1,5 @@
 # complete_example.py
-from adapters_extended import bash, http_client, http_server, python, database, file, HttpServerAdapter
+from adapters import bash, http_client, http_server, python, database, file, HttpServerAdapter
 from pipeline_dsl import PipelineDSL
 import threading
 import time

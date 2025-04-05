@@ -2,6 +2,11 @@
 """
 bash_adapter.py
 """
+import subprocess
+import tempfile
+import os
+import json
+import ChainableAdapter
 
 
 
@@ -59,3 +64,9 @@ class BashAdapter(ChainableAdapter):
                 pass
 
         return output
+
+    def reset(self):
+        """Resetuje parametry adaptera."""
+        self._params = {}
+        return self
+
