@@ -1,0 +1,72 @@
+# pipelines/image_processing.yaml
+pipelines:
+  image-processing:
+    description: "Pipeline przetwarzania obrazu i detekcji obiektów"
+    steps:
+      - adapter: file
+        methods:
+          - name: path
+            value: "${input.file_path}"
+          - name: operation
+            value: "read"
+        output: image_data
+
+      - adapter: opencv
+        methods:
+          - name: operation
+            value: "read"
+          - name: output_path
+            value: "${output_dir}/original_image.jpg"
+        input: ${results.image_data}
+        output: original_image
+
+      - adapter: opencv
+        methods:
+          - name: operation
+            value: "process"
+          - name: operations
+            value:
+              - type: "resize"
+                width: 800
+                height: 600
+              - type: "convert_color"
+                code: 6  # COLOR_BGR2GRAY
+              - type: "blur"
+                kernel_size: [5, 5]
+              - type: "threshold"
+                value: 127
+                max_value: 255
+          - name: output_path
+            value: "${output_dir}/processed_image.jpg"
+        input: ${results.original_image.image}
+        output: processed_image
+
+      - adapter: opencv
+        methods:
+          - name: operation
+            value: "detect"
+          - name: detection_method
+            value: "haar"
+          - name: object_type
+            value: "face"
+          - name: output_path
+            value: "${output_dir}/faces_detected.jpg"
+        input: ${results.original_image.image}
+        output: detected_faces
+
+      - adapter: file
+        methods:
+          - name: path
+            value: "${output_dir}/results.json"
+          - name: operation
+            value: "write"
+        input: {
+          "timestamp": "${timestamp}",
+          "original_image": "${results.original_image.output_path}",
+          "processed_image": "${results.processed_image.output_path}",
+          "faces_detected": {
+            "count": "${results.detected_faces.count}",
+            "image": "${results.detected_faces.output_path}"
+          }
+        }
+        output: report_file

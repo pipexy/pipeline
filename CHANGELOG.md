@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4] - 2025-04-05
+
+### Added
+- Changes in RTSP.md
+- Changes in adapters/opencv_adapter.py
+- Changes in adapters/rpi_audio_adapter.py
+- Changes in adapters/rtsp_adapter.py
+- Changes in adapters/stt_adapter.py
+- Changes in adapters/tts_adapter.py
+- Changes in core/ChainableAdapter.py
+- Changes in core/pipeline_dsl.py
+- Changes in examples/advanced_examples.py
+- Changes in examples/advanced_workflow.py
+- Changes in examples/complete_example.py
+- Changes in examples/examples.py
+- Changes in examples/opencv_rtsp_example.py
+- Changes in examples/voice_conversation.py
+- Changes in pipelines/image_processing.yaml
+- Changes in pipelines/pipelines.yaml
+- Changes in pipelines/rtsp.yaml
+- Changes in pipelines/voice_printer_control.yaml
+- Changes in workflows/advanced_pipelines.yaml
+- Changes in workflows/video_monitoring.yaml
+- Changes in workflows/voice_assistant.yaml
+- Changes in workflows/workflow.yaml
+
+### Removed
+- Changes in core/pipeline_engine.py
+
 ## [0.1.3] - 2025-04-04
 
 ### Added

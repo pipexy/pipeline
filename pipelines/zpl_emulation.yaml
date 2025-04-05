@@ -1,1 +1,78 @@
 # Pipeline emulacji ZPL
+# pipelines/zpl_emulation.yaml
+pipelines:
+  zpl-emulation:
+    description: "Pipeline emulacji i renderowania ZPL"
+    steps:
+      - adapter: file
+        methods:
+          - name: path
+            value: "${input.file_path}"
+          - name: operation
+            value: "read"
+        output: zpl_code
+
+      - adapter: zpl
+        methods:
+          - name: render_mode
+            value: "labelary"
+          - name: dpi
+            value: 203
+          - name: width
+            value: 4
+          - name: height
+            value: 6
+          - name: output_path
+            value: "${output_dir}/zpl_output_${timestamp}.png"
+        input:
+          zpl: "${results.zpl_code}"
+        output: rendered_image
+
+      - adapter: conditional
+        methods:
+          - name: condition
+            value: "${params.generate_pdf}"
+          - name: if_true
+            value: true
+        output: should_generate_pdf
+
+      - adapter: python
+        methods:
+          - name: code
+            value: |
+              from PIL import Image
+              import os
+              
+              # Otwórz obraz wygenerowany przez ZPL
+              image_path = results['rendered_image']['output_path']
+              img = Image.open(image_path)
+              
+              # Stwórz ścieżkę dla PDF
+              pdf_path = os.path.splitext(image_path)[0] + '.pdf'
+              
+              # Zapisz jako PDF
+              img.save(pdf_path, 'PDF', resolution=100.0)
+              
+              result = {
+                  'pdf_path': pdf_path,
+                  'success': True
+              }
+        condition: "${results.should_generate_pdf}"
+        output: pdf_output
+
+      - adapter: file
+        methods:
+          - name: path
+            value: "${output_dir}/zpl_report_${timestamp}.json"
+          - name: operation
+            value: "write"
+        input: {
+          "timestamp": "${timestamp}",
+          "zpl_file": "${input.file_path}",
+          "image_output": "${results.rendered_image.output_path}",
+          "pdf_output": "${results.pdf_output.pdf_path}",
+          "dpi": 203,
+          "width": 4,
+          "height": 6
+        }
+        output: report_file

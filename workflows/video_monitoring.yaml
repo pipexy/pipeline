@@ -1,0 +1,188 @@
+# workflows/video_monitoring.yaml
+workflow:
+  name: "Video Monitoring System"
+  description: "System monitoringu wideo z RTSP i detekcją obiektów"
+  version: "1.0"
+
+  inputs:
+    - name: rtsp_url
+      type: string
+      description: "URL strumienia RTSP"
+      required: true
+
+    - name: detection_interval
+      type: integer
+      description: "Interwał między detekcjami w sekundach"
+      default: 5
+
+    - name: monitoring_duration
+      type: integer
+      description: "Czas monitoringu w sekundach"
+      default: 60
+
+    - name: output_dir
+      type: string
+      description: "Katalog na wyniki"
+      default: "./output/monitoring"
+
+  steps:
+    - id: connect_stream
+      description: "Nawiązanie połączenia ze strumieniem RTSP"
+      adapter: rtsp
+      methods:
+        - name: operation
+          value: "connect"
+        - name: url
+          value: "${inputs.rtsp_url}"
+        - name: stream_id
+          value: "monitoring_stream"
+
+    - id: setup_output_dir
+      description: "Przygotowanie katalogu na wyniki"
+      adapter: bash
+      methods:
+        - name: command
+          value: "mkdir -p ${inputs.output_dir}"
+
+    - id: monitoring_loop
+      description: "Monitoring z detekcją obiektów"
+      adapter: python
+      methods:
+        - name: code
+          value: |
+            import time
+            from datetime import datetime
+            
+            # Inicjalizacja wyników
+            detections = []
+            stream_id = "monitoring_stream"
+            
+            # Czas monitoringu
+            monitoring_duration = params.get('monitoring_duration', 60)
+            detection_interval = params.get('detection_interval', 5)
+            output_dir = params.get('output_dir', './output/monitoring')
+            
+            start_time = time.time()
+            next_detection_time = start_time
+            
+            # Główna pętla monitoringu
+            while time.time() - start_time < monitoring_duration:
+                current_time = time.time()
+                
+                # Sprawdź czy czas na detekcję
+                if current_time >= next_detection_time:
+                    # Pobierz klatkę
+                    from adapters import rtsp
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    frame_path = f"{output_dir}/frame_{timestamp}.jpg"
+                    
+                    frame_result = rtsp.stream_id(stream_id).operation('get_frame').output_path(frame_path).execute()
+                    
+                    # Detekcja obiektów
+                    from adapters import opencv
+                    detection_path = f"{output_dir}/detection_{timestamp}.jpg"
+                    
+                    detection_result = opencv.operation('detect').detection_method('haar').object_type('face').output_path(detection_path).execute(frame_result['frame'])
+                    
+                    # Zapisz wyniki detekcji
+                    detection_info = {
+                        'timestamp': timestamp,
+                        'frame_path': frame_path,
+                        'detection_path': detection_path,
+                        'objects_count': detection_result['count'],
+                        'objects': detection_result['objects']
+                    }
+                    
+                    detections.append(detection_info)
+                    
+                    # Aktualizuj czas następnej detekcji
+                    next_detection_time = current_time + detection_interval
+                
+                # Pauza
+                time.sleep(0.5)
+            
+            # Zwróć wyniki
+            result = {
+                'detections': detections,
+                'monitoring_duration': monitoring_duration,
+                'detection_count': len(detections)
+            }
+      input:
+        monitoring_duration: "${inputs.monitoring_duration}"
+        detection_interval: "${inputs.detection_interval}"
+        output_dir: "${inputs.output_dir}"
+      output: monitoring_results
+      depends_on:
+        - connect_stream
+        - setup_output_dir
+
+    - id: disconnect_stream
+      description: "Zamknięcie połączenia ze strumieniem"
+      adapter: rtsp
+      methods:
+        - name: operation
+          value: "disconnect"
+        - name: stream_id
+          value: "monitoring_stream"
+      depends_on:
+        - monitoring_loop
+
+    - id: generate_report
+      description: "Generowanie raportu z monitoringu"
+      adapter: python
+      methods:
+        - name: code
+          value: |
+            import json
+            from datetime import datetime
+            
+            # Przygotuj raport
+            detections = input_data.get('detections', [])
+            
+            # Oblicz statystyki
+            detection_count = len(detections)
+            total_objects = sum(d.get('objects_count', 0) for d in detections)
+            avg_objects = total_objects / detection_count if detection_count > 0 else 0
+            
+            # Znajdź detekcje z obiektami
+            detections_with_objects = [d for d in detections if d.get('objects_count', 0) > 0]
+            
+            # Utwórz raport
+            report = {
+                'timestamp': datetime.now().isoformat(),
+                'monitoring_duration': input_data.get('monitoring_duration', 0),
+                'detection_count': detection_count,
+                'total_objects_detected': total_objects,
+                'avg_objects_per_detection': avg_objects,
+                'detections_with_objects': len(detections_with_objects),
+                'detections': detections
+            }
+            
+            result = report
+      input: "${results.monitoring_results}"
+      output: report
+      depends_on:
+        - monitoring_loop
+
+    - id: save_report
+      description: "Zapisanie raportu z monitoringu"
+      adapter: file
+      methods:
+        - name: path
+          value: "${inputs.output_dir}/monitoring_report_${timestamp}.json"
+        - name: operation
+          value: "write"
+      input: "${results.report}"
+      output: report_file
+      depends_on:
+        - generate_report
+
+  outputs:
+    - name: monitoring_report
+      value: "${results.report}"
+
+    - name: report_file
+      value: "${results.report_file.path}"
+
+    - name: total_objects_detected
+      value: "${results.report.total_objects_detected}"

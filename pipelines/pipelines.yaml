@@ -1,0 +1,77 @@
+# pipelines.yaml
+pipelines:
+  data-processing:
+    description: "Pipeline przetwarzania danych z API do bazy"
+    steps:
+      - adapter: http_client
+        methods:
+          - name: url
+            value: "https://api.example.com/data"
+          - name: method
+            value: "GET"
+          - name: headers
+            value:
+              Authorization: "Bearer TOKEN"
+
+      - adapter: python
+        methods:
+          - name: code
+            value: |
+              # Transformacja danych
+              transformed = []
+              for item in input_data:
+                  transformed.append({
+                      'id': item['id'],
+                      'name': item['name'].upper(),
+                      'value': item['value'] * 2
+                  })
+              result = transformed
+
+      - adapter: database
+        methods:
+          - name: type
+            value: "sqlite"
+          - name: connection
+            value: "data.db"
+          - name: query
+            value: "INSERT INTO items (id, name, value) VALUES (:id, :name, :value)"
+
+  log-analysis:
+    description: "Analiza logów i raportowanie"
+    steps:
+      - adapter: bash
+        methods:
+          - name: command
+            value: "grep ERROR /var/log/app.log | tail -n 100"
+
+      - adapter: python
+        methods:
+          - name: code
+            value: |
+              # Parsowanie logów
+              import re
+              
+              pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) - (ERROR|WARNING) - (.*)'
+              logs = []
+              
+              for line in input_data.split('\n'):
+                  match = re.match(pattern, line)
+                  if match:
+                      logs.append({
+                          'timestamp': match.group(1),
+                          'level': match.group(2),
+                          'message': match.group(3)
+                      })
+              
+              result = {
+                  'logs': logs,
+                  'count': len(logs),
+                  'error_count': sum(1 for log in logs if log['level'] == 'ERROR')
+              }
+
+      - adapter: file
+        methods:
+          - name: path
+            value: "./reports/error_logs.json"
+          - name: operation
+            value: "write"

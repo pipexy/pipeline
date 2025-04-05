@@ -1,0 +1,141 @@
+# pipelines/voice_printer_control.yaml
+pipelines:
+  voice-printer-control:
+    description: "Pipeline obsługi drukarki za pomocą komend głosowych"
+    steps:
+      - adapter: stt
+        methods:
+          - name: engine
+            value: "vosk"
+          - name: language
+            value: "${language}"
+          - name: duration
+            value: 5
+        output: voice_command
+
+      - adapter: python
+        methods:
+          - name: code
+            value: |
+              # Przetwarzanie komendy głosowej
+              text = input_data.get('text', '').lower()
+              language = params.get('language', 'pl')
+              
+              # Słownik komend w różnych językach
+              commands = {
+                'pl': {
+                  'print': ['drukuj', 'wydrukuj', 'drukowanie'],
+                  'cancel': ['anuluj', 'zatrzymaj', 'stop'],
+                  'status': ['status', 'stan'],
+                  'help': ['pomoc', 'help']
+                },
+                'en': {
+                  'print': ['print', 'run'],
+                  'cancel': ['cancel', 'stop'],
+                  'status': ['status', 'state'],
+                  'help': ['help']
+                }
+              }
+              
+              # Rozpoznanie komendy
+              command_type = None
+              for cmd, keywords in commands.get(language, commands['en']).items():
+                if any(keyword in text for keyword in keywords):
+                  command_type = cmd
+                  break
+              
+              # Domyślna odpowiedź
+              response = {
+                'pl': 'Nie rozumiem komendy. Powiedz "pomoc" aby uzyskać listę komend.',
+                'en': 'I don\'t understand the command. Say "help" to get a list of commands.'
+              }.get(language, 'I don\'t understand the command.')
+              
+              # Parametry dla ZPL
+              zpl_code = None
+              
+              # Obsługa rozpoznanych komend
+              if command_type == 'print':
+                if 'etykieta' in text or 'label' in text:
+                  zpl_code = '^XA^FO50,50^A0N,50,50^FDDrukowanie etykiety^FS^XZ'
+                  response = {
+                    'pl': 'Drukuję etykietę',
+                    'en': 'Printing label'
+                  }.get(language, 'Printing label')
+                elif 'raport' in text or 'report' in text:
+                  zpl_code = '^XA^FO50,50^A0N,50,50^FDRaport dzienny^FS^FO50,120^A0N,30,30^FDData: 2023-07-21^FS^XZ'
+                  response = {
+                    'pl': 'Drukuję raport dzienny',
+                    'en': 'Printing daily report'
+                  }.get(language, 'Printing report')
+                else:
+                  zpl_code = '^XA^FO50,50^A0N,50,50^FDWydruk testowy^FS^XZ'
+                  response = {
+                    'pl': 'Drukuję dokument testowy',
+                    'en': 'Printing test document'
+                  }.get(language, 'Printing test document')
+              
+              elif command_type == 'cancel':
+                response = {
+                  'pl': 'Anulowano zadanie drukowania',
+                  'en': 'Print job canceled'
+                }.get(language, 'Print job canceled')
+              
+              elif command_type == 'status':
+                response = {
+                  'pl': 'Drukarka jest gotowa do pracy',
+                  'en': 'Printer is ready'
+                }.get(language, 'Printer is ready')
+              
+              elif command_type == 'help':
+                response = {
+                  'pl': 'Dostępne komendy: drukuj, anuluj, status, pomoc',
+                  'en': 'Available commands: print, cancel, status, help'
+                }.get(language, 'Available commands: print, cancel, status, help')
+              
+              # Wynik
+              result = {
+                'command_type': command_type,
+                'response_text': response,
+                'zpl_code': zpl_code,
+                'recognized_text': text
+              }
+        input:
+          text: "${results.voice_command.text}"
+        params:
+          language: "${language}"
+        output: command_result
+
+      - adapter: tts
+        methods:
+          - name: engine
+            value: "espeak"
+          - name: language
+            value: "${language}"
+          - name: voice
+            value: "${voice}"
+        input: "${results.command_result.response_text}"
+        output: voice_response
+
+      - adapter: conditional
+        methods:
+          - name: condition
+            value: "${results.command_result.zpl_code != null}"
+          - name: if_true
+            value: true
+        output: should_print
+
+      - adapter: zpl
+        methods:
+          - name: render_mode
+            value: "labelary"
+          - name: dpi
+            value: 203
+          - name: width
+            value: 4
+          - name: height
+            value: 6
+          - name: output_path
+            value: "${output_dir}/voice_command_${timestamp}.png"
+        input: "${results.command_result.zpl_code}"
+        condition: "${results.should_print}"
+        output: print_result

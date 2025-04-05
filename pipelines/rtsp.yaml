@@ -1,0 +1,32 @@
+pipelines:
+  print-with-opencv:
+    description: "Pipeline przetwarzania obrazu przed drukowaniem"
+    steps:
+      - adapter: rtsp
+        methods:
+          - name: operation
+            value: "get_frame"
+          - name: stream_id
+            value: "printer_camera"
+        output: camera_frame
+
+      - adapter: opencv
+        methods:
+          - name: operation
+            value: "process"
+          - name: operations
+            value:
+              - type: "resize"
+                width: 800
+                height: 600
+        input: ${results.camera_frame.frame}
+        output: processed_image
+
+      - adapter: zpl
+        methods:
+          - name: render_mode
+            value: "labelary"
+          - name: dpi
+            value: 203
+        input: ${results.processed_image.processed_image}
+        output: label

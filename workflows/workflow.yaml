@@ -1,0 +1,146 @@
+# workflow.yaml
+workflow:
+  name: "Data Processing and Analysis Workflow"
+  description: "Comprehensive data processing, analysis and ML pipeline"
+  version: "1.0"
+
+  inputs:
+    - name: data_source
+      type: string
+      description: "Source of the data (URL or file path)"
+      required: true
+
+    - name: target_column
+      type: string
+      description: "Target column for predictions"
+      default: "target"
+
+    - name: train_model
+      type: boolean
+      description: "Whether to train ML model"
+      default: true
+
+  steps:
+    - id: fetch_data
+      description: "Fetch data from the source"
+      adapter: http_client
+      methods:
+        - name: url
+          value: "${inputs.data_source}"
+        - name: method
+          value: "GET"
+      condition: "${inputs.data_source.startswith('http')}"
+
+    - id: read_local_file
+      description: "Read data from local file"
+      adapter: file
+      methods:
+        - name: path
+          value: "${inputs.data_source}"
+        - name: operation
+          value: "read"
+      condition: "not ${inputs.data_source.startswith('http')}"
+
+    - id: transform_data
+      description: "Transform and clean the data"
+      adapter: python
+      methods:
+        - name: code
+          value: |
+            import pandas as pd
+            import numpy as np
+            
+            # Convert to DataFrame
+            if isinstance(input_data, list):
+                df = pd.DataFrame(input_data)
+            elif isinstance(input_data, str):
+                # Try to parse as CSV
+                df = pd.read_csv(input_data)
+            else:
+                df = input_data
+            
+            # Basic data cleaning
+            for col in df.columns:
+                if df[col].dtype == 'object':
+                    df[col] = df[col].fillna('')
+                else:
+                    df[col] = df[col].fillna(df[col].mean())
+            
+            # Save to CSV
+            df.to_csv('./data/transformed_data.csv', index=False)
+            
+            result = {
+                'data': df,
+                'rows': len(df),
+                'columns': df.columns.tolist(),
+                'file_path': './data/transformed_data.csv'
+            }
+      depends_on:
+        - fetch_data
+        - read_local_file
+
+    - id: analyze_data
+      description: "Perform data analysis"
+      adapter: ml
+      methods:
+        - name: operation
+          value: "analyze"
+      depends_on:
+        - transform_data
+
+    - id: train_model_step
+      description: "Train ML model"
+      adapter: ml
+      methods:
+        - name: operation
+          value: "train"
+        - name: model_type
+          value: "random_forest_classifier"
+        - name: target_column
+          value: "${inputs.target_column}"
+        - name: output_path
+          value: "./models/model_${timestamp}.pkl"
+      condition: "${inputs.train_model}"
+      depends_on:
+        - transform_data
+
+    - id: evaluate_model
+      description: "Evaluate the trained model"
+      adapter: ml
+      methods:
+        - name: operation
+          value: "evaluate"
+        - name: model_path
+          value: "${steps.train_model_step.output.model_path}"
+        - name: target_column
+          value: "${inputs.target_column}"
+      condition: "${inputs.train_model}"
+      depends_on:
+        - train_model_step
+
+    - id: save_report
+      description: "Save final report"
+      adapter: file
+      methods:
+        - name: path
+          value: "./reports/workflow_report_${timestamp}.json"
+        - name: operation
+          value: "write"
+      depends_on:
+        - analyze_data
+        - evaluate_model
+
+  outputs:
+    - name: analysis_results
+      value: "${steps.analyze_data.output}"
+
+    - name: model_path
+      value: "${steps.train_model_step.output.model_path}"
+      condition: "${inputs.train_model}"
+
+    - name: evaluation_metrics
+      value: "${steps.evaluate_model.output.metrics}"
+      condition: "${inputs.train_model}"
+
+    - name: report_path
+      value: "${steps.save_report.output.path}"

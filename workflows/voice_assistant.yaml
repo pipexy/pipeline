@@ -1,0 +1,81 @@
+# workflows/voice_assistant.yaml
+workflow:
+  name: "Voice Assistant for Printer Control"
+  description: "System komunikacji głosowej do kontroli drukarek"
+  version: "1.0"
+
+  inputs:
+    - name: language
+      type: string
+      description: "Język komunikacji (pl, en, de, fr, es)"
+      default: "pl"
+
+    - name: tts_engine
+      type: string
+      description: "Silnik TTS"
+      default: "espeak"
+
+    - name: stt_engine
+      type: string
+      description: "Silnik STT"
+      default: "vosk"
+
+    - name: voice
+      type: string
+      description: "Głos TTS"
+      default: ""
+
+    - name: max_interactions
+      type: integer
+      description: "Maksymalna liczba interakcji"
+      default: 5
+
+  steps:
+    - id: setup_audio
+      description: "Konfiguracja audio"
+      adapter: rpi_audio
+      methods:
+        - name: operation
+          value: "check_devices"
+
+    - id: welcome_message
+      description: "Powitanie"
+      adapter: tts
+      methods:
+        - name: engine
+          value: "${inputs.tts_engine}"
+        - name: language
+          value: "${inputs.language}"
+        - name: voice
+          value: "${inputs.voice}"
+      input: |
+        ${if(inputs.language == 'pl', 'Witaj! Jestem asystentem głosowym drukarki. Powiedz "pomoc" aby uzyskać listę komend.',
+           inputs.language == 'en', 'Hello! I am a printer voice assistant. Say "help" to get a list of commands.',
+           inputs.language == 'de', 'Hallo! Ich bin ein Drucker-Sprachassistent. Sagen Sie "Hilfe", um eine Liste der Befehle zu erhalten.',
+           inputs.language == 'fr', 'Bonjour! Je suis un assistant vocal d\'imprimante. Dites "aide" pour obtenir une liste de commandes.',
+           inputs.language == 'es', '¡Hola! Soy un asistente de voz de impresora. Di "ayuda" para obtener una lista de comandos.')}
+      output: welcome_result
+      depends_on:
+        - setup_audio
+
+    - id: interaction_loop
+      description: "Pętla interakcji głosowej"
+      adapter: python
+      methods:
+        - name: code
+          value: |
+            from adapters import tts, stt, rpi_audio
+            
+            # Parametry
+            language = params['language']
+            tts_engine = params['tts_engine']
+            stt_engine = params['stt_engine']
+            voice = params['voice']
+            max_interactions = params['max_interactions']
+            
+            # Słownik komend w różnych językach
+            commands = {
+              'pl': {
+                'print': ['drukuj', 'wydrukuj', 'drukowanie'],
+                'cancel': ['anuluj', 'zatrzymaj', 'stop'],
+                'status': ['status', 'stan'],
